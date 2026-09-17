@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Job Application Agent — Setup Guide</title>
+<meta name="description" content="Step-by-step guide to deploying your own copy of the Job Application Agent: a personal job discovery, evaluation and recommendation pipeline.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ TOKENS ============ */
+  :root{
+    --bg:#f2f2ec;
+    --surface:#ffffff;
+    --surface-2:#eaeadf;
+    --surface-3:#dedecf;
+    --text:#1c1e17;
+    --text-muted:#65685a;
+    --border:#d8d8cb;
+    --accent:#a15f16;
+    --accent-ink:#7a480f;
+    --accent-soft:#f2e2c8;
+    --teal:#1c6a58;
+    --teal-soft:#dcefe8;
+    --danger:#a13a2c;
+    --danger-soft:#f6e1db;
+    --success:#2c7a45;
+    --success-soft:#dcefe0;
+    --code-bg:#1a1e21;
+    --code-text:#e8e6dd;
+    --code-border:#33393d;
+    --code-accent:#e0a750;
+    --shadow:0 1px 2px rgba(20,18,10,.06),0 6px 20px rgba(20,18,10,.07);
+    --radius:10px;
+    color-scheme:light;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#15171a;
+      --surface:#1b1e21;
+      --surface-2:#232629;
+      --surface-3:#2c3033;
+      --text:#ece9df;
+      --text-muted:#a3a596;
+      --border:#33373a;
+      --accent:#e0a750;
+      --accent-ink:#f2c27d;
+      --accent-soft:#372c19;
+      --teal:#58baa1;
+      --teal-soft:#173029;
+      --danger:#e18276;
+      --danger-soft:#38201c;
+      --success:#7dca8e;
+      --success-soft:#1b3020;
+      --code-bg:#0f1113;
+      --code-text:#e8e6dd;
+      --code-border:#2a2d2f;
+      --code-accent:#e0a750;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#15171a;
+    --surface:#1b1e21;
+    --surface-2:#232629;
+    --surface-3:#2c3033;
+    --text:#ece9df;
+    --text-muted:#a3a596;
+    --border:#33373a;
+    --accent:#e0a750;
+    --accent-ink:#f2c27d;
+    --accent-soft:#372c19;
+    --teal:#58baa1;
+    --teal-soft:#173029;
+    --danger:#e18276;
+    --danger-soft:#38201c;
+    --success:#7dca8e;
+    --success-soft:#1b3020;
+    --code-bg:#0f1113;
+    --code-text:#e8e6dd;
+    --code-border:#2a2d2f;
+    --code-accent:#e0a750;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+
+  /* ============ BASE ============ */
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4{
+    font-family:"Archivo",-apple-system,sans-serif;
+    font-weight:800;
+    line-height:1.15;
+    text-wrap:balance;
+    margin:0 0 .5em;
+    color:var(--text);
+  }
+  p{margin:0 0 1em;max-width:68ch;}
+  a{color:var(--teal);text-decoration-thickness:1.5px;text-underline-offset:2px;}
+  a:hover{color:var(--accent);}
+  code,kbd{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.92em;}
+  code:not(pre code){
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    padding:.1em .4em;
+    border-radius:5px;
+    color:var(--accent-ink);
+  }
+  ul,ol{padding-left:1.3em;max-width:64ch;}
+  li{margin-bottom:.45em;}
+  img{max-width:100%;}
+  [hidden]{display:none!important;}
+  ::selection{background:var(--accent-soft);}
+  :focus-visible{outline:2.5px solid var(--teal);outline-offset:2px;}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms!important;transition-duration:.001ms!important;}
+  }
+
+  .eyebrow{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:.72rem;
+    font-weight:600;
+    letter-spacing:.11em;
+    text-transform:uppercase;
+    color:var(--text-muted);
+  }
+
+  /* ============ SHELL / LAYOUT ============ */
+  .shell{
+    max-width:1240px;
+    margin:0 auto;
+    padding-inline:max(16px, env(safe-area-inset-left,0px));
+    display:grid;
+    grid-template-columns:264px minmax(0,1fr);
+    gap:40px;
+    align-items:start;
+  }
+  .topbar{
+    position:sticky;
+    top:env(safe-area-inset-top,0px);
+    z-index:40;
+    display:none;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px max(16px, env(safe-area-inset-left,0px));
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+  }
+  .topbar strong{font-family:"Archivo";font-size:1rem;}
+  .nav-toggle{
+    font-family:"IBM Plex Mono";
+    font-size:.78rem;
+    font-weight:600;
+    background:var(--surface);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:8px;
+    padding:8px 12px;
+    cursor:pointer;
+  }
+
+  aside.sidebar{
+    position:sticky;
+    top:20px;
+    max-height:calc(100vh - 40px);
+    overflow-y:auto;
+    padding:22px 4px 22px 0;
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+  }
+  .brand{display:flex;gap:10px;align-items:flex-start;}
+  .brand-mark{
+    font-size:1.5rem;
+    line-height:1;
+    filter:none;
+  }
+  .brand-text{font-family:"Archivo";font-weight:800;font-size:1.02rem;line-height:1.2;}
+  .brand-text span{display:block;font-family:"Public Sans";font-weight:600;font-size:.78rem;color:var(--text-muted);margin-top:2px;}
+
+  .progress-box{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:14px 14px 16px;
+    box-shadow:var(--shadow);
+  }
+  .progress-box .label{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-family:"IBM Plex Mono";font-size:.72rem;letter-spacing:.06em;
+    color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;
+  }
+  .progress-box .label b{color:var(--text);font-size:.85rem;}
+  .bar{height:7px;border-radius:99px;background:var(--surface-2);overflow:hidden;border:1px solid var(--border);}
+  .bar-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--teal),var(--accent));transition:width .35s ease;}
+  .progress-box small{display:block;margin-top:8px;color:var(--text-muted);font-size:.74rem;}
+
+  nav.toc{display:flex;flex-direction:column;position:relative;}
+  nav.toc::before{
+    content:"";position:absolute;left:9px;top:6px;bottom:6px;width:2px;
+    background:var(--border);
+  }
+  nav.toc a{
+    position:relative;
+    display:flex;align-items:center;gap:10px;
+    padding:6px 8px 6px 4px;
+    font-size:.86rem;font-weight:600;color:var(--text-muted);
+    text-decoration:none;border-radius:7px;
+  }
+  nav.toc a .dot{
+    width:20px;height:20px;flex:none;border-radius:50%;
+    background:var(--surface);border:2px solid var(--border);
+    display:flex;align-items:center;justify-content:center;
+    font-family:"IBM Plex Mono";font-size:.62rem;font-weight:700;color:var(--text-muted);
+    position:relative;z-index:1;
+  }
+  nav.toc a:hover{color:var(--text);background:var(--surface-2);}
+  nav.toc a.active{color:var(--text);}
+  nav.toc a.active .dot{border-color:var(--teal);color:var(--teal);background:var(--teal-soft);}
+  nav.toc a.done .dot{background:var(--teal);border-color:var(--teal);color:#fff;}
+  nav.toc .tag{
+    margin-left:auto;font-family:"IBM Plex Mono";font-size:.6rem;font-weight:700;
+    letter-spacing:.04em;padding:1px 6px;border-radius:99px;
+    background:var(--surface-2);color:var(--text-muted);white-space:nowrap;
+  }
+  nav.toc .tag.req{background:var(--danger-soft);color:var(--danger);}
+  nav.toc .tag.rec{background:var(--accent-soft);color:var(--accent-ink);}
+
+  main{min-width:0;padding-block:36px 80px;}
+
+  /* ============ HERO ============ */
+  .hero{padding-top:8px;margin-bottom:30px;}
+  .hero h1{font-size:clamp(1.9rem,4.2vw,2.7rem);margin-bottom:.35em;}
+  .hero .lede{font-size:1.08rem;color:var(--text-muted);max-width:62ch;}
+  .pipeline{
+    display:flex;flex-wrap:wrap;align-items:center;gap:0;
+    margin:26px 0 22px;
+    border:1px solid var(--border);
+    background:var(--surface);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:18px 16px;
+  }
+  .pipeline .stage{
+    display:flex;flex-direction:column;gap:2px;
+    padding:6px 18px;flex:1;min-width:120px;
+  }
+  .pipeline .stage b{font-family:"Archivo";font-size:.95rem;letter-spacing:.01em;}
+  .pipeline .stage small{color:var(--text-muted);font-size:.76rem;}
+  .pipeline .arrow{color:var(--teal);font-family:"IBM Plex Mono";font-weight:700;padding:0 2px;flex:none;}
+  @media (max-width:640px){
+    .pipeline{flex-direction:column;align-items:stretch;}
+    .pipeline .arrow{transform:rotate(90deg);align-self:center;padding:2px 0;}
+    .pipeline .stage{padding:4px 6px;}
+  }
+
+  .meta-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;}
+  .meta-pill{
+    display:flex;align-items:center;gap:6px;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:99px;padding:7px 14px;font-size:.82rem;font-weight:600;
+    box-shadow:var(--shadow);
+  }
+  .meta-pill .k{color:var(--text-muted);font-weight:500;}
+
+  /* ============ CALLOUTS ============ */
+  .callout{
+    border:1px solid var(--border);
+    border-left:4px solid var(--teal);
+    background:var(--surface);
+    border-radius:0 var(--radius) var(--radius) 0;
+    padding:16px 18px;
+    margin:22px 0;
+    box-shadow:var(--shadow);
+  }
+  .callout h4{font-size:.95rem;margin-bottom:.4em;display:flex;align-items:center;gap:8px;}
+  .callout p:last-child{margin-bottom:0;}
+  .callout.warn{border-left-color:var(--accent);}
+  .callout.warn h4{color:var(--accent-ink);}
+  .callout.danger{border-left-color:var(--danger);}
+  .callout.danger h4{color:var(--danger);}
+  .callout.info h4{color:var(--teal);}
+  .callout.check{border-left-color:var(--success);background:var(--success-soft);}
+  .callout.check h4{color:var(--success);}
+
+  /* ============ PHASE SECTIONS ============ */
+  .phase{
+    position:relative;
+    padding:34px 0;
+    border-top:1px solid var(--border);
+    scroll-margin-top:24px;
+  }
+  .phase:first-of-type{border-top:none;}
+  .phase-head{display:flex;gap:16px;align-items:flex-start;margin-bottom:18px;}
+  .phase-num{
+    font-family:"Archivo";font-weight:900;font-size:1.7rem;
+    color:var(--teal);flex:none;width:48px;line-height:1.1;
+  }
+  .phase-title-wrap{flex:1;min-width:0;}
+  .phase-title-wrap h2{font-size:1.5rem;margin-bottom:.15em;}
+  .phase-badges{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .badge{
+    font-family:"IBM Plex Mono";font-size:.68rem;font-weight:700;letter-spacing:.05em;
+    text-transform:uppercase;padding:3px 9px;border-radius:99px;
+    background:var(--surface-2);color:var(--text-muted);
+  }
+  .badge.req{background:var(--danger-soft);color:var(--danger);}
+  .badge.rec{background:var(--accent-soft);color:var(--accent-ink);}
+  .badge.opt{background:var(--teal-soft);color:var(--teal);}
+  .badge.time{background:transparent;border:1px solid var(--border);color:var(--text-muted);}
+  .phase-check{
+    flex:none;width:30px;height:30px;border-radius:8px;
+    border:1.5px solid var(--border);background:var(--surface);
+    cursor:pointer;color:var(--text-muted);font-size:1rem;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .phase-check[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:#fff;}
+
+  .phase-body{padding-left:64px;}
+  @media (max-width:560px){
+    .phase-body{padding-left:0;}
+    .phase-num{width:auto;}
+  }
+  .phase-body h3{font-size:1.08rem;margin-top:1.6em;}
+  .phase-body h3:first-child{margin-top:0;}
+
+  .step-label{
+    font-family:"IBM Plex Mono";font-size:.7rem;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--text-muted);margin:1.3em 0 .4em;
+  }
+
+  /* ============ CODE ============ */
+  .code-block{
+    position:relative;margin:.6em 0 1.3em;
+    border-radius:9px;overflow:hidden;
+    border:1px solid var(--code-border);
+    box-shadow:var(--shadow);
+  }
+  .code-block .bar{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--code-border);
+    padding:6px 10px 6px 14px;
+    height:auto;border-radius:0;border:none;
+  }
+  .code-block .bar span{
+    font-family:"IBM Plex Mono";font-size:.68rem;color:#b9bdb2;
+    letter-spacing:.05em;text-transform:uppercase;font-weight:600;
+  }
+  .copy-btn{
+    font-family:"IBM Plex Mono";font-size:.68rem;font-weight:600;
+    background:transparent;border:1px solid #454b4f;color:#cfd2c8;
+    border-radius:6px;padding:3px 9px;cursor:pointer;
+  }
+  .copy-btn:hover{border-color:var(--code-accent);color:var(--code-accent);}
+  .code-block pre{
+    margin:0;padding:14px 16px;background:var(--code-bg);
+    overflow-x:auto;
+  }
+  .code-block code{
+    font-family:"IBM Plex Mono";font-size:.85rem;line-height:1.65;
+    color:var(--code-text);background:none;border:none;padding:0;white-space:pre;
+  }
+  .code-block .cmt{color:#8c9086;}
+  .code-block .str{color:#9fd4b4;}
+  .code-block .kw{color:var(--code-accent);}
+
+  /* ============ TABLES ============ */
+  .table-wrap{overflow-x:auto;margin:1em 0 1.4em;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);}
+  table{border-collapse:collapse;width:100%;min-width:520px;background:var(--surface);}
+  th,td{text-align:left;padding:10px 14px;font-size:.88rem;border-bottom:1px solid var(--border);vertical-align:top;}
+  th{
+    font-family:"IBM Plex Mono";font-size:.68rem;text-transform:uppercase;
+    letter-spacing:.06em;color:var(--text-muted);background:var(--surface-2);font-weight:700;
+  }
+  tr:last-child td{border-bottom:none;}
+  td code{white-space:nowrap;}
+
+  /* ============ ENV VAR GRID ============ */
+  .envgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin:1em 0 1.4em;}
+  .envvar{
+    background:var(--surface);border:1px solid var(--border);border-radius:8px;
+    padding:9px 12px;font-family:"IBM Plex Mono";font-size:.78rem;
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+  }
+  .envvar em{font-family:"Public Sans";font-style:normal;font-size:.68rem;color:var(--text-muted);white-space:nowrap;}
+
+  /* ============ MISC COMPONENTS ============ */
+  .choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:1.2em 0;}
+  .choice-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px;box-shadow:var(--shadow);
+  }
+  .choice-card .eyebrow{margin-bottom:6px;}
+  .choice-card h4{font-size:1rem;margin-bottom:.35em;}
+  .choice-card p{font-size:.87rem;margin-bottom:.6em;color:var(--text-muted);}
+  .choice-card a.btn, a.btn{
+    display:inline-block;font-size:.78rem;font-weight:700;font-family:"IBM Plex Mono";
+    color:var(--teal);text-decoration:none;border:1px solid var(--teal);
+    padding:5px 11px;border-radius:7px;
+  }
+  .choice-card a.btn:hover, a.btn:hover{background:var(--teal);color:#fff;}
+
+  .checkpoint{
+    background:var(--success-soft);border:1px solid var(--success);
+    border-radius:var(--radius);padding:16px 18px;margin:26px 0;
+  }
+  .checkpoint b{color:var(--success);font-family:"IBM Plex Mono";font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;display:block;margin-bottom:6px;}
+
+  footer{
+    border-top:1px solid var(--border);padding:34px 0 10px;margin-top:20px;
+    color:var(--text-muted);font-size:.86rem;
+  }
+  footer a{color:var(--text-muted);}
+  .refs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:1em 0 2em;}
+  .refs div{
+    display:block;background:var(--surface);border:1px solid var(--border);border-radius:8px;
+    padding:11px 13px;font-size:.85rem;font-weight:600;color:var(--text);
+    font-family:"IBM Plex Mono";
+  }
+  .refs div small{display:block;font-weight:500;font-family:"Public Sans";color:var(--text-muted);font-size:.76rem;margin-top:3px;}
+
+  @media (max-width:900px){
+    .shell{grid-template-columns:1fr;gap:0;}
+    .topbar{display:flex;}
+    aside.sidebar{
+      position:fixed;top:0;left:0;bottom:0;width:min(300px,84vw);
+      background:var(--bg);border-right:1px solid var(--border);
+      max-height:100vh;padding:76px 18px 24px;z-index:60;
+      transform:translateX(-100%);transition:transform .22s ease;
+      box-shadow:0 0 40px rgba(0,0,0,.25);
+    }
+    aside.sidebar.open{transform:translateX(0);}
+    .sidebar-backdrop{
+      display:none;position:fixed;inset:0;background:rgba(10,10,8,.4);z-index:50;
+    }
+    .sidebar-backdrop.open{display:block;}
+    main{padding-top:20px;}
+  }
+</style>
+</head>
+<body>
+<!-- ARTIFACT:BODY:START -->
+
+<div class="topbar">
+  <strong>🧭 Job Application Agent</strong>
+  <button class="nav-toggle" id="navToggle" aria-expanded="false">Contents ▾</button>
+</div>
+<div class="sidebar-backdrop" id="backdrop"></div>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-mark">🧭</span>
+      <span class="brand-text">Job Application Agent<span>Setup guide</span></span>
+    </div>
+
+    <div class="progress-box">
+      <div class="label"><span>Progress</span><b id="progressCount">0 / 10</b></div>
+      <div class="bar"><div class="bar-fill" id="progressFill"></div></div>
+      <small>Saved in this browser as you go — tick a phase off once it's done.</small>
+    </div>
+
+    <nav class="toc" id="toc">
+      <a href="#start"><span class="dot">·</span>Before you start</a>
+      <a href="#phase-0"><span class="dot">0</span>Get the code<span class="tag req">required</span></a>
+      <a href="#phase-1"><span class="dot">1</span>Install &amp; dependencies<span class="tag req">required</span></a>
+      <a href="#phase-2"><span class="dot">2</span>Your database<span class="tag req">required</span></a>
+      <a href="#phase-3"><span class="dot">3</span>Your candidate profile<span class="tag req">required</span></a>
+      <a href="#phase-4"><span class="dot">4</span>Cron secret<span class="tag req">required</span></a>
+      <a href="#phase-5"><span class="dot">5</span>Run it locally<span class="tag req">required</span></a>
+      <a href="#phase-6"><span class="dot">6</span>Turn on AI scoring<span class="tag rec">recommended</span></a>
+      <a href="#phase-7"><span class="dot">7</span>Bring in real jobs<span class="tag req">required</span></a>
+      <a href="#phase-8"><span class="dot">8</span>Deploy to Vercel<span class="tag rec">recommended</span></a>
+      <a href="#phase-9"><span class="dot">9</span>Optional extras</a>
+      <a href="#phase-10"><span class="dot">10</span>Day to day</a>
+      <a href="#troubleshooting"><span class="dot">!</span>Troubleshooting</a>
+      <a href="#further-reading"><span class="dot">?</span>Further reading</a>
+    </nav>
+  </aside>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Personal job search infrastructure · self-hosted · yours alone</p>
+      <h1>Set up your own Job Application Agent</h1>
+      <p class="lede">A personal pipeline that watches for jobs, scores them against your own profile, and tells you which ones are worth your time — so you stop reading job boards and start reading a shortlist.</p>
+
+      <div class="pipeline">
+        <div class="stage"><b>Collect</b><small>alert emails, job APIs, manual paste</small></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>Classify</b><small>normalise, dedupe, sort</small></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>Score</b><small>AI evaluation against your profile</small></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>Recommend</b><small>shortlist, sheet, Telegram</small></div>
+      </div>
+
+      <div class="meta-row">
+        <div class="meta-pill"><span class="k">Time:</span> 1–3 hours, split however you like</div>
+        <div class="meta-pill"><span class="k">Cost:</span> free tiers, plus a few dollars a month if you turn on AI scoring</div>
+        <div class="meta-pill"><span class="k">You'll need:</span> a terminal, a GitHub account, your CV</div>
+      </div>
+
+      <p><strong>What it will never do:</strong> write a cover letter, tailor your CV, answer a screening question, or submit anything on your behalf. It finds and ranks. You still do the applying.</p>
+    </section>
+
+    <div class="callout warn" id="start">
+      <h4>Before you start — this is a personal system, not a shared one</h4>
+      <p>Every part of this project is scoped to one person: one database holds one candidate profile, one Gmail inbox is read for alerts, one set of API keys pays for one person's AI usage. It was not built to serve two people from one deployment.</p>
+      <p>That means setting this up for yourself is <strong>not</strong> a matter of getting added to someone else's Supabase project, Vercel account, or Google Cloud project. You'll create your own copy of everything in this guide — your own database, your own Google Cloud project, your own API keys, and your own candidate files describing <em>your</em> background. Nothing here is shared, and nothing you enter is visible to anyone else's copy of the system.</p>
+    </div>
+
+    <!-- PHASE 0 -->
+    <section class="phase" id="phase-0">
+      <div class="phase-head">
+        <div class="phase-num">00</div>
+        <div class="phase-title-wrap">
+          <h2>Get the code onto your machine</h2>
+          <div class="phase-badges">
+            <span class="badge req">Required</span>
+            <span class="badge time">~10 min</span>
+          </div>
+        </div>
+        <button class="phase-check" data-phase="0" aria-pressed="false" title="Mark done">✓</button>
+      </div>
+      <div class="phase-body">
+        <p>The original copy of this project lives in a private repository, and its git history carries personal information that belongs to whoever built it — so the right move isn't to be added as a collaborator on that exact repo. Instead, start a clean repository of your own from a plain copy of the code (no <code>.git</code> history, no <code>node_modules</code>, no <code>.env.local</code>).</p>
+
+        <h3>Get a clean copy</h3>
+        <p>Ask whoever shared this guide with you for a zipped copy of the project folder, or download one from wherever they've made it available. Unzip it somewhere on your computer — for example <code>~/Projects/job-application-agent</code> or <code>C:\Projects\job-application-agent</code>.</p>
+
+        <h3>Create your own repository</h3>
+        <p>On <a href="https://github.com/new" target="_blank" rel="noopener">github.com/new</a>, create a new repository — private is fine, since it's about to hold your CV and personal details. Then, from inside your unzipped folder:</p>
+
+        <div class="step-label">Terminal — inside your project folder</div>
+        <div class="code-block" data-lang="bash">
+          <div class="bar"><span>bash / zsh / PowerShell</span><button class="copy-btn">Copy</button></div>
+          <pre><code>git init
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin https://github.com/&lt;your-username&gt;/&lt;your-repo-name&gt;.git
+git push -u origin main</code></pre>
+        </div>
+
+        <div class="callout info">
+          <h4>Prefer no command line for this bit?</h4>
+          <p>GitHub's web uploader works too: create the empty repository, click <strong>Add file → Upload files</strong>, and drag the whole folder in (minus anything already excluded by <code>.gitignore</code>, like <code>node_modules</code>). You'll still need a terminal from Phase 1 onward.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PHASE 1 -->
+    <section class="phase" id="phase-1">
+      <div class="phase-head">
+        <div class="phase-num">01</div>
+        <div class="phase-title-wrap">
+          <h2>Install prerequisites &amp; dependencies</h2>
+          <div class="phase-badges">
+            <span class="badge req">Required</span>
+            <span class="badge time">~10 min</span>
+          </div>
+        </div>
+        <button class="phase-check" data-phase="1" aria-pressed="false" title="Mark done">✓</button>
+      </div>
+      <div class="phase-body">
+        <h3>Install Node.js</h3>
+        <p>You need <strong>Node 20.11 or newer</strong>. Download the LTS installer from <a href="https://nodejs.org" target="_blank" rel="noopener">nodejs.org</a> and run it — npm comes bundled with it, so there's nothing extra to install.</p>
+
+        <div class="step-label">Terminal — check the version</div>
+        <div class="code-block">
+          <div class="bar"><span>bash / zsh / PowerShell</span><button class="copy-btn">Copy</button></div>
+          <pre><code>node -v
+<span class="cmt"># expect v20.11.0 or higher</span></code></pre>
+        </div>
+
+        <h3>Install the project's dependencies</h3>
+        <div class="step-label">Terminal — inside your project folder</div>
+        <div class="code-block">
+          <div class="bar"><span>bash / zsh / PowerShell</span><button class="copy-btn">Copy</button></div>
+          <pre><code>npm install</code></pre>
+        </div>
+        <p>This reads <code>package.json</code> and pulls in Next.js, React, the Supabase client, and everything else the app needs.</p>
+      </div>
+    </section>
+
+    <!-- PHASE 2 -->
+    <section class="phase" id="phase-2">
+      <div class="phase-head">
+        <div class="phase-num">02</div>
+        <div class="phase-title-wrap">
+          <h2>Create your database</h2>
+          <div class="phase-badges">
+            <span class="badge req">Required</span>
+            <span class="badge time">~15 min</span>
+          </div>
+        </div>
+        <button class="phase-check" data-phase="2" aria-pressed="false" title="Mark done">✓</button>
+      </div>
+      <div class="phase-body">
+        <p>The app stores everything — jobs, your profile, scores, decisions — in a Postgres database. <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a>'s free tier is what this project was built and tested against, so it's the easiest route in.</p>
+
+        <h3>Create the project</h3>
+        <p>Sign up at <a href="https://supabase.com/dashboard" target="_blank" rel="noopener">supabase.com/dashboard</a> and create a new project. Pick any name and a region close to you. Save the database password it asks you to set — you'll need it in a moment.</p>
+
+        <h3>Start your environment file</h3>
+        <p>Back in your project folder, copy the example environment file. This is the file that holds every secret the app uses, and it's already excluded from git.</p>
+        <div class="step-label">Terminal</div>
+        <div class="code-block">
+          <div class="bar"><span>macOS / Linux</span><button class="copy-btn">Copy</button></div>
+          <pre><code>cp .env.example .env.local</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="bar"><span>Windows PowerShell</span><button class="copy-btn">Copy</button></div>
+          <pre><code>Copy-Item .env.example .env.local</code></pre>
+        </div>
+
+        <h3>Fill in four values</h3>
+        <p>Open <code>.env.local</code> in a text editor. From your Supabase project's dashboard, fill in:</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Variable</th><th>Where to find it</th></tr></thead>
+            <tbody>
+              <tr><td><code>DATABASE_URL</code></td><td><strong>Project Settings → Database → Connection string → Session pooler.</strong> Copy the whole string from the dashboard rather than typing it by hand — the hostname's prefix (<code>aws-0</code>, <code>aws-1</code>…) is assigned per project, and guessing it produces a confusing "tenant not found" error that looks like a DNS problem.</td></tr>
+              <tr><td><code>NEXT_PUBLIC_SUPABASE_URL</code></td><td><strong>Project Settings → API</strong></td></tr>
+              <tr><td><code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code></td><td><strong>Project Settings → API</strong> — the publishable/anon key. Safe to expose in the browser.</td></tr>
+              <tr><td><code>SUPABASE_SERVICE_ROLE_KEY</code></td><td><strong>Project Settings → API Keys</strong> — the secret <code>service_role</code> key. This one bypasses all database security rules — never share it, never put it in anything that ships to a browser.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Set up the schema</h3>
+        <div class="step-label">Terminal</div>
+        <div class="code-block">
+          <div class="bar"><span>bash / zsh / PowerShell</span><button class="copy-btn">Copy</button></div>
+          <pre><code>npm run db:migrate   <span class="cmt"># creates all the tables</span>
+npm run db:seed      <span class="cmt"># adds starter config + a few sample jobs</span></code></pre>
+        </div>
+        <p>A successful seed prints a line like <code>Seeded. sources=5 saved_searches=8 jobs=5</code>. Those five sample jobs are clearly fictional (fake employers like "Northwind" or "Cobalt") — they're there purely so you have something to look at before any real source is connected.</p>
+      </div>
+    </section>
+
+    <!-- PHASE 3 -->
+    <section class="phase" id="phase-3">
+      <div class="phase-head">
+        <div class="phase-num">03</div>
+        <div class="phase-title-wrap">
+          <h2>Tell it who you are</h2>
+          <div class="phase-badges">
+            <span class="badge req">Required</span>
+            <span class="badge time">~20 min</span>
+          </div>
+        </div>
+        <button class="phase-check" data-phase="3" aria-pressed="false" title="Mark done">✓</button>
+      </div>
+      <div class="phase-body">
+        <p>The single most important rule in this whole project: <strong>the system never invents anything about you.</strong> Every score, every recommendation, every "missing requirement" it flags comes only from what's written in four files in the <code>candidate/</code> folder. If your CV doesn't mention a skill, the system won't assume you have it — it'll just mark that requirement unmet.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>File</th><th>Holds</th></tr></thead>
+            <tbody>
+              <tr><td><code>candidate/candidate_profile.json</code></td><td>Your background — education, work history, skills, licences, certifications.</td></tr>
+              <tr><td><code>candidate/job_preferences.json</code></td><td>The roles, locations and working arrangements you're actually looking for.</td></tr>
+              <tr><td><code>candidate/projects.json</code></td><td>Personal or academic projects worth showing as evidence — kept clearly separate from paid employment.</td></tr>
+              <tr><td><code>candidate/CV.pdf</code></td><td>Your actual CV, for anything the JSON doesn't capture in full.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>Open each JSON file — the ones already in the folder are a real, filled-in example, so use their structure as a template and replace every field with your own information. Swap in your own <code>CV.pdf</code> too.</p>
+
+        <div class="callout warn">
+          <h4>Be thorough here</h4>
+          <p>Because nothing is invented on your behalf, an accurate score depends entirely on how complete these files are. A skill you have but forgot to list is a skill the system will treat as a gap. Ten minutes of extra detail here is worth more than any setting later in this guide.</p>
+        </div>
+
+        <div class="step-label">Terminal</div>
+        <div class="code-block">
+          <div class="bar"><span>bash / zsh / PowerShell</span><button class="copy-btn">Copy</button></div>
+          <pre><code>npm run profile:load
+<span class="cmt"># writes your JSON files into the database as candidate_profile version 1</span></code></pre>
+        </div>
+        <p>Re-run this command any time you update your profile — it validates the files and stores a new version.</p>
+      </div>
+    </section>
+
+    <!-- PHASE 4 -->
+    <section class="phase" id="phase-4">
+      <div class="phase-head">
+        <div class="phase-num">04</div>
+        <div class="phase-title-wrap">
+          <h2>Generate your cron secret</h2>
+          <div class="phase-badges">
+            <span class="badge req">Required</span>
+            <span class="badge time">~2 min</span>
+          </div>
+        </div>
+        <button class="phase-check" data-phase="4" aria-pressed="false" title="Mark done">✓</button>
+      </div>
+      <div class="phase-body">
+        <p>Once this is deployed (Phase 8), something needs to prove to the app that a scheduled request really is the scheduler and not a stranger poking the internet. That's <code>CRON_SECRET</code> — a random string only you and your deployment know. Generate one now so it's ready:</p>
+
+        <div class="step-label">Terminal — works the same on every OS, since it just uses Node</div>
+        <div class="code-block">
+          <div class="bar"><span>bash / zsh / PowerShell</span><button class="copy-btn">Copy</button></div>
+          <pre><code>node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"</code></pre>
+        </div>
+        <p>Paste the result into <code>.env.local</code> as <code>CRON_SECRET=</code>. It needs to be at least 16 characters, so this 64-character version comfortably clears that.</p>
+      </div>
+    </section>
+
+    <!-- PHASE 5 -->
+    <section class="phase" id="phase-5">
+      <div class="phase-head">
+        <div class="phase-num">05</div>
+        <div class="phase-title-wrap">
+          <h2>Run it locally</h2>
+          <div class="phase-badges">
+            <span class="badge req">Required</span>
+            <span class="badge time">~5 min</span>
+          </div>
+        </div>
+        <button class="phase-check" data-phase="5" aria-pressed="false" title="Mark done">✓</button>
+      </div>
+      <div class="phase-body">
+        <div class="step-label">Terminal</div>
+        <div class="code-block">
+          <div class="bar"><span>bash / zsh / PowerShell</span><button class="copy-btn">Copy</button></div>
+          <pre><code>npm run dev</code></pre>
+        </div>
+        <p>Open <a href="http://localhost:3000" target="_blank" rel="noopener">http://localhost:3000</a> — you should see a dashboard listing the sample jobs from Phase 2.</p>
+
+        <h3>Check the health endpoint</h3>
+        <div class="step-label">Terminal — in a second window, while <code>npm run dev</code> is still running</div>
+        <div class="code-block">
+          <div class="bar"><span>macOS / Linux</span><button class="copy-btn">Copy</button></div>
+          <pre><code>curl -s http://localhost:3000/api/health</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="bar"><span>Windows PowerShell</span><button class="copy-btn">Copy</button></div>
+          <pre><code>Invoke-RestMethod http://localhost:3000/api/health</code></pre>
+        </div>
+        <p>A healthy response reports HTTP 200, <code>"status":"healthy"</code>, the number of migrations applied, and your active profile version. If any of those look wrong, re-check Phases 2 and 3 before moving on.</p>
+
+        <div class="checkpoint">
+          <b>Checkpoint</b>
+          You now have a fully working system running on your own machine, scoring nothing yet, watching nothing yet — just correctly wired up. Everything from here makes it useful and automatic rather than just alive.
+        </div>
+      </div>
+    </section>
+
+    <!-- PHASE 6 -->
+    <section class="phase" id="phase-6">
+      <div class="phase-head">
+        <div class="phase-num">06</div>
+        <div class="phase-title-wrap">
+          <h2>Turn on AI scoring</h2>
+          <div class="phase-badges">
+            <span class="badge rec">Recommended</span>
+            <span class="badge">The only step that spends money</span>
+            <span class="badge time">~10 min</span>
+          </div>
+        </div>
+        <button class="phase-check" data-phase="6" aria-pressed="false" title="Mark done">✓</button>
+      </div>
+      <div class="phase-body">
+        <p>Every other part of this system is free to run. Scoring a job against your profile calls an AI model, and that's the one line item with a real bill attached — so it's opt-in, and capped.</p>
+
+        <h3>Get a key</h3>
+        <p>Create an API key at <a href="https://platform.claude.com" target="_blank" rel="noopener">platform.claude.com</a> and add it to <code>.env.local</code> as <code>ANTHROPIC_API_KEY</code>. Without this key, evaluation skips cleanly — collection, the dashboard and everything else keep working, jobs simply stay unscored.</p>
+
+        <h3>Set your own spending limits</h3>
+        <p>Two variables cap what this can spend, and both default conservatively — but <strong>set them to match what you're actually comfortable spending</strong>, since the defaults know nothing about your actual budget:</p>
+
+        <div class="envgrid">
+          <div class="envvar">AI_MONTHLY_BUDGET_USD<em>hard monthly ceiling</em></div>
+          <div class="envvar">AI_RUN_CEILING_USD<em>cap per single run</em></div>
+        </div>
+
+        <p>When the monthly figure is reached, scoring stops for the rest of the month — collection and notifications carry on regardless, new jobs just arrive unscored until the next month. As a rough sense of scale, scoring twenty jobs a day at the cheaper "triage" tier has historically landed around <strong>15–20 cents a day</strong>, so well under $10 over a month — but treat that as a ballpark from one point in time, not a quote: model pricing changes, and your own ceiling is what actually protects you, not this number.</p>
+      </div>
+    </section>
+
+    <!-- PHASE 7 -->
+    <section class="phase" id="phase-7">
+      <div class="phase-head">
+        <div class="phase-num">07</div>
+        <div class="phase-title-wrap">
+          <h2>Bring in real jobs</h2>
+          <div class="phase-badges">
+            <span class="badge req">Required — pick at least one</span>
+            <span class="badge time">5 min to 30 min, depending which</span>
+          </div>
+        </div>
+        <button class="phase-check" data-phase="7" aria-pressed="false" title="Mark done">✓</button>
+      </div>
+      <div class="phase-body">
+        <p>Every job source is independent and every adapter skips cleanly when it has no credentials — so add as many or as few as you like, starting with whichever is easiest for you.</p>
+
+        <div class="choice-grid">
+          <div class="choice-card">
+            <div class="eyebrow">Zero setup</div>
+            <h4>Paste a job in by hand</h4>
+            <p>The dashboard has a manual capture form. Paste in a job posting you found yourself and it runs through the same scoring pipeline as everything else. Good for proving the system works before configuring anything.</p>
+          </div>
+          <div class="choice-card">
+            <div class="eyebrow">Most coverage</div>
+            <h4>Gmail job alerts</h4>
+            <p>Indeed and LinkedIn have no API a personal project can legitimately use — so instead, this reads the alert emails they already send to your own inbox. See the walkthrough below.</p>
+          </div>
+          <div class="choice-card">
+            <div class="eyebrow">Free API keys</div>
+            <h4>Reed / Careerjet / Jooble</h4>
+            <p>UK-focused job search APIs with free tiers. Sign up, paste a key into <code>.env.local</code>, done — no OAuth involved.</p>
+          </div>
+        </div>
+
+        <h3>Option: Gmail job alerts (the fiddliest, most rewarding one)</h3>
+        <p>This is a genuine OAuth setup, and it has one non-obvious trap, so read this section fully before starting. It only reads mail — <code>gmail.readonly</code> is the only scope this part needs, and nothing in the code can send, label, or delete anything through it.</p>
+
+        <div class="callout danger">
+          <h4>The 7-day trap</h4>
+          <p>Google issues a refresh token that <strong>expires every 7 days</strong> for as long as your Google Cloud project's OAuth consent screen is left in "Testing" mode. Left alone, this makes collection quietly start failing with <code>invalid_grant</code> roughly once a week, looking exactly like something broke. <strong>Publish the app to production instead</strong> (step 5 below) — for a single-user personal project this is one extra click, triggers an "unverified app" warning you click through, and the token then simply doesn't expire.</p>
+        </div>
+
+        <ol>
+          <li>At <a href="https://console.cloud.google.com" target="_blank" rel="noopener">console.cloud.google.com</a>, create a new project (any name).</li>
+          <li>Search <strong>Gmail API</strong> in the top search bar and click <strong>Enable</strong>.</li>
+          <li><strong>APIs &amp; Services → OAuth consent screen.</strong> Choose <strong>External</strong> (the only option for a personal, non-Workspace Google account), fill in an app name and your own email as the support/developer contact.</li>
+          <li><strong>Data access → Add or remove scopes</strong> — add <code>.../auth/gmail.readonly</code>. (If you're also setting up the Google Sheet in Phase 9, add <code>.../auth/spreadsheets</code> at the same time — it saves repeating this later.)</li>
+          <li>Go to <a href="https://console.cloud.google.com/auth/audience" target="_blank" rel="noopener">console.cloud.google.com/auth/audience</a> and click <strong>Publish app</strong>. This is the step that defuses the 7-day trap above.</li>
+          <li><strong>APIs &amp; Services → Credentials → Create credentials → OAuth client ID.</strong> Application type <strong>Web application</strong> (not Desktop — a web client lets you set the redirect URI explicitly). Under Authorised redirect URIs add exactly <code>http://localhost</code> — no trailing slash, no port. Save the Client ID and Client secret it gives you.</li>
+          <li>Add <code>GMAIL_CLIENT_ID</code> and <code>GMAIL_CLIENT_SECRET</code> to <code>.env.local</code>.</li>
+        </ol>
+
+        <div class="step-label">Terminal — this opens a browser consent screen for you</div>
+        <div class="code-block">
+          <div class="bar"><span>bash / zsh / PowerShell</span><button class="copy-btn">Copy</button></div>
+          <pre><code>npm run google:auth</code></pre>
+        </div>
+        <p>Sign in with the Google account whose alerts you want read, approve the permissions, and the script writes <code>GMAIL_REFRESH_TOKEN</code> (and <code>GOOGLE_REFRESH_TOKEN</code>) into <code>.env.local</code> for you. If you see "Google hasn't verified this app," that's expected for your own unpublished-to-the-world app — click <strong>Advanced → Go to (your app name) (unsafe)</strong>.</p>
+
+        <div class="step-label">Terminal</div>
+        <div class="code-block">
+          <div class="bar"><span>bash / zsh / PowerShell</span><button class="copy-btn">Copy</button></div>
+          <pre><code>npm run collect</code></pre>
+        </div>
+        <p>Look for <code>emailsIngested</code> greater than zero in the output — that's confirmation the app really did read your inbox. The full walkthrough, with every error message explained, ships in <code>GMAIL_OAUTH_SETUP.md</code> in the repo if you hit anything not covered here.</p>
+
+        <h3>Option: aggregator APIs</h3>
+        <div class="envgrid">
+          <div class="envvar">REED_API_KEY<em><a href="https://www.reed.co.uk/developers" target="_blank" rel="noopener">reed.co.uk/developers</a></em></div>
+          <div class="envvar">CAREERJET_AFFILIATE_ID<em><a href="https://www.careerjet.co.uk/partners" target="_blank" rel="noopener">careerjet.co.uk/partners</a></em></div>
+          <div class="envvar">JOOBLE_API_KEY<em><a href="https://jooble.org/api/about" target="_blank" rel="noopener">jooble.org/api/about</a></em></div>
+        </div>
+        <p>Free signups, each gives you a key to paste into <code>.env.local</code>. Note that a key alone isn't quite enough for these three specifically — they're deliberately disabled by default so an old key can't silently switch a source back on. To use one, also list it by name in <code>ENABLE_SOURCES</code> (see the comments in <code>.env.example</code>).</p>
+
+        <div class="callout info">
+          <h4>What about apprenticeship listings?</h4>
+          <p>The codebase includes an adapter for the UK's official "Find an apprenticeship" feed, but it ships disabled — a choice made by whoever set this instance up originally for their own search, not a limitation of the code. If apprenticeships are relevant to you, it's there to re-enable; search the repo for <code>findapprenticeship</code> to see where.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PHASE 8 -->
+    <section class="phase" id="phase-8">
+      <div class="phase-head">
+        <div class="phase-num">08</div>
+        <div class="phase-title-wrap">
+          <h2>Deploy it so it runs every day</h2>
+          <div class="phase-badges">
+            <span class="badge rec">Recommended</span>
+            <span class="badge time">~20 min</span>
+          </div>
+        </div>
+        <button class="phase-check" data-phase="8" aria-pressed="false" title="Mark done">✓</button>
+      </div>
+      <div class="phase-body">
+        <p>Everything so far runs only while your laptop is open and <code>npm run dev</code> is running. Deploying to Vercel's free Hobby plan is what lets it collect, score and notify you automatically, every day, without you doing anything.</p>
+
+        <h3>Push and import</h3>
+        <p>Push your repository to GitHub if you haven't already (Phase 0), then go to <a href="https://vercel.com/new" target="_blank" rel="noopener">vercel.com/new</a> and import it. Vercel detects Next.js automatically — no configuration needed there.</p>
+
+        <h3>Add every environment variable</h3>
+        <p>In <strong>Project → Settings → Environment Variables</strong>, add everything you've collected in <code>.env.local</code> so far, set for the <strong>Production</strong> environment (scheduled jobs only ever run against production):</p>
+
+        <div class="envgrid">
+          <div class="envvar">DATABASE_URL</div>
+          <div class="envvar">NEXT_PUBLIC_SUPABASE_URL</div>
+          <div class="envvar">NEXT_PUBLIC_SUPABASE_ANON_KEY</div>
+          <div class="envvar">SUPABASE_SERVICE_ROLE_KEY</div>
+          <div class="envvar">CRON_SECRET</div>
+          <div class="envvar">ANTHROPIC_API_KEY</div>
+          <div class="envvar">AI_MONTHLY_BUDGET_USD</div>
+          <div class="envvar">AI_RUN_CEILING_USD</div>
+          <div class="envvar">GMAIL_CLIENT_ID</div>
+          <div class="envvar">GMAIL_CLIENT_SECRET</div>
+          <div class="envvar">GMAIL_REFRESH_TOKEN</div>
+          <div class="envvar">APP_URL<em>your vercel.app URL</em></div>
+        </div>
+        <p>Plus whichever optional ones from Phases 6, 7 and 9 you set up. Changing a variable only takes effect on the <em>next</em> deployment, so redeploy after editing any of them.</p>
+
+        <h3>The schedule is already in the repo</h3>
+        <p><code>vercel.json</code> defines four daily jobs, an hour apart so each finishes before the next starts, all in UTC:</p>
+        <div class="code-block">
+          <div class="bar"><span>vercel.json</span><button class="copy-btn">Copy</button></div>
+          <pre><code>{
+  "crons": [
+    { "path": "/api/cron/collect",  "schedule": "0 5 * * *" },
+    { "path": "/api/cron/evaluate", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/sheet",    "schedule": "0 7 * * *" },
+    { "path": "/api/cron/notify",   "schedule": "0 8 * * *" }
+  ]
+}</code></pre>
+        </div>
+        <p>Adjust the hours to taste — the free Hobby plan allows one run per day per job, firing somewhere inside its scheduled hour rather than on the exact minute.</p>
+
+        <h3>Confirm it worked</h3>
+        <p>Once deployed, check <code>https://&lt;your-app&gt;.vercel.app/api/health</code> and look at <strong>Project → Cron Jobs</strong> in the Vercel dashboard the day after your first scheduled run to see each job's status.</p>
+      </div>
+    </section>
+
+    <!-- PHASE 9 -->
+    <section class="phase" id="phase-9">
+      <div class="phase-head">
+        <div class="phase-num">09</div>
+        <div class="phase-title-wrap">
+          <h2>Optional extras</h2>
+          <div class="phase-badges">
+            <span class="badge opt">Optional</span>
+            <span class="badge time">10–20 min each</span>
+          </div>
+        </div>
+        <button class="phase-check" data-phase="9" aria-pressed="false" title="Mark done">✓</button>
+      </div>
+      <div class="phase-body">
+        <h3>A self-updating Google Sheet</h3>
+        <p>Rather than re-running an export command, you can have a spreadsheet that rewrites itself with your current shortlist every morning. It reuses the same Google Cloud project from Phase 7 — you just need to add one more scope.</p>
+        <ol>
+          <li><strong>APIs &amp; Services → Library → Google Sheets API → Enable.</strong></li>
+          <li><strong>OAuth consent screen → Data access → Add or remove scopes</strong> — add <code>.../auth/spreadsheets</code> alongside <code>gmail.readonly</code>.</li>
+          <li>Re-run <code>npm run google:auth</code>. This step matters even if you did Gmail alerts already — a token never gains a scope after it's issued, so adding the scope in the console alone does nothing until you get a new token.</li>
+          <li>Create a new blank Google Sheet, copy its URL or ID into <code>GOOGLE_SHEET_ID</code> in <code>.env.local</code> (and in Vercel, if deployed).</li>
+        </ol>
+        <div class="code-block">
+          <div class="bar"><span>bash / zsh / PowerShell</span><button class="copy-btn">Copy</button></div>
+          <pre><code>npm run export -- --sheets</code></pre>
+        </div>
+        <p>The sheet is fully overwritten on every run, with one exception: whatever you type into its <strong>Decision</strong> column (interested, applied, rejected…) is read back and carried across before the rewrite, matched by job rather than by row position.</p>
+
+        <h3>Telegram notifications</h3>
+        <ol>
+          <li>Message <strong>@BotFather</strong> on Telegram, send <code>/newbot</code>, and copy the token it gives you into <code>TELEGRAM_BOT_TOKEN</code>.</li>
+          <li>Send your new bot any message first — a bot can't start a conversation, so until you message it, it has nowhere to reply.</li>
+          <li>Open <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code> in a browser and read <code>result[0].message.chat.id</code> — that's <code>TELEGRAM_CHAT_ID</code>.</li>
+        </ol>
+        <div class="code-block">
+          <div class="bar"><span>bash / zsh / PowerShell</span><button class="copy-btn">Copy</button></div>
+          <pre><code>npm run notify -- --test</code></pre>
+        </div>
+        <p>Without both variables set, notifications are skipped cleanly — nothing else in the pipeline is affected.</p>
+
+        <h3>The Gmail application tracker</h3>
+        <p>A separate piece that watches your <em>outgoing job search</em> mail — acknowledgements, interview invites, rejections — and moves a tracker row automatically. It runs inside Google's own Apps Script environment, not inside this app, using a script version-controlled at <code>scripts/gmail/gmail-ai-triage.gs</code>.</p>
+        <ol>
+          <li>In Gmail, create a filter that applies a label (e.g. <code>Job Applications</code>) to mail from ATS platforms (Greenhouse, Workday, Lever, SmartRecruiters…) or matching subject keywords like "application" or "interview." Don't skip the inbox — you still want to read these.</li>
+          <li>Go to <a href="https://script.google.com" target="_blank" rel="noopener">script.google.com</a> (signed in as the account that receives that mail), create a new project, and paste in the contents of <code>scripts/gmail/gmail-ai-triage.gs</code>.</li>
+          <li>Optional: get a free key at <a href="https://aistudio.google.com" target="_blank" rel="noopener">aistudio.google.com</a> for the small number of emails plain rules can't classify, and add it under <strong>Project Settings → Script Properties</strong> as <code>GEMINI_API_KEY</code>. Without it, unreadable mail just stays visible and unclassified — the safe default.</li>
+          <li>Run the <code>setup()</code> function once from the Apps Script editor and approve the permissions it asks for. This installs the triggers that check your inbox every 15 minutes.</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- PHASE 10 -->
+    <section class="phase" id="phase-10">
+      <div class="phase-head">
+        <div class="phase-num">10</div>
+        <div class="phase-title-wrap">
+          <h2>Using it day to day</h2>
+          <div class="phase-badges">
+            <span class="badge">Ongoing</span>
+          </div>
+        </div>
+      </div>
+      <div class="phase-body">
+        <p>Once it's deployed and collecting, this is roughly the loop:</p>
+        <ul>
+          <li>Check the self-updating Google Sheet (or run <code>npm run export</code> for a fresh <code>shortlist.xlsx</code>) — best matches first, colour-coded.</li>
+          <li>Mark a job <strong>interested</strong> or <strong>saved</strong> to keep it visible, or set the Decision column to <strong>applied</strong> once you've actually applied — that's the one signal the system trusts, since it never guesses that you applied from an email alone.</li>
+          <li>From there, replies about that job get matched automatically and move it through the tracker: acknowledged → interview → rejected/offer.</li>
+          <li>A daily Telegram digest, if you set it up, surfaces the strongest new matches without you having to go looking.</li>
+          <li>The Sheet's <strong>Status</strong> tab (or Vercel's Cron Jobs page) is the place to check when something feels stale — it timestamps the last successful run of every stage.</li>
+        </ul>
+        <p>And to say it once more plainly: nothing here ever submits an application, sends a message, or writes anything on your behalf. It reads, scores, and tells you. The rest is still yours.</p>
+      </div>
+    </section>
+
+    <!-- TROUBLESHOOTING -->
+    <section class="phase" id="troubleshooting">
+      <div class="phase-head">
+        <div class="phase-num">!</div>
+        <div class="phase-title-wrap">
+          <h2>Troubleshooting</h2>
+        </div>
+      </div>
+      <div class="phase-body">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+            <tbody>
+              <tr><td><code>(ENOTFOUND) tenant/user … not found</code></td><td>Wrong Supabase pooler hostname prefix in <code>DATABASE_URL</code>.</td><td>Copy the connection string directly from the Supabase dashboard rather than editing an example by hand.</td></tr>
+              <tr><td>Cron runs return <code>503</code> on Vercel</td><td>An environment variable the route needs is missing in Production.</td><td>The response body names which one — add it and redeploy.</td></tr>
+              <tr><td><code>invalid_grant: Token has been expired or revoked</code></td><td>Your Google Cloud OAuth consent screen is still in "Testing," so the refresh token died after 7 days.</td><td>Publish the app (Phase 7, step 5), then re-run <code>npm run google:auth</code>.</td></tr>
+              <tr><td><code>ACCESS_TOKEN_SCOPE_INSUFFICIENT</code></td><td>You added a scope in Google Cloud Console, but your existing token was issued before that and never gained it.</td><td>Re-run <code>npm run google:auth</code> — scopes are only baked in when a token is issued.</td></tr>
+              <tr><td><code>redirect_uri_mismatch</code></td><td>The registered redirect URI doesn't exactly match <code>http://localhost</code> — often a stray trailing slash.</td><td>Check the OAuth client's Authorised redirect URIs in Google Cloud Console.</td></tr>
+              <tr><td>Collection reports adapters "skipped (no credentials)"</td><td>Expected — a source with no key is meant to skip quietly rather than fail the whole run.</td><td>Add that source's credentials if you want it running, or ignore it if you don't.</td></tr>
+              <tr><td>Evaluation isn't scoring anything</td><td>No <code>ANTHROPIC_API_KEY</code> set, or the monthly budget has been reached.</td><td>Add the key (Phase 6) or check <code>AI_MONTHLY_BUDGET_USD</code> against what's actually been spent this month.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Gmail-specific errors are covered in far more depth, with the exact console screens involved, in <code>GMAIL_OAUTH_SETUP.md</code> inside the repository.</p>
+      </div>
+    </section>
+
+    <!-- FURTHER READING -->
+    <section class="phase" id="further-reading" style="border-bottom:1px solid var(--border);">
+      <div class="phase-head">
+        <div class="phase-num">?</div>
+        <div class="phase-title-wrap">
+          <h2>Further reading</h2>
+        </div>
+      </div>
+      <div class="phase-body">
+        <p>This guide is deliberately a fast path to a running system. Inside your copy of the repository, these files carry the deeper documentation for anything you want to understand more thoroughly:</p>
+        <div class="refs">
+          <div>README.md<small>Project overview and command reference</small></div>
+          <div>STAGE_0_ARCHITECTURE.md<small>Full architecture, schema and scoring model</small></div>
+          <div>GMAIL_OAUTH_SETUP.md<small>The complete Gmail walkthrough, error by error</small></div>
+          <div>GOOGLE_SHEETS_SETUP.md<small>Full detail on the self-updating sheet and tracker</small></div>
+          <div>SUPABASE_SETUP.md<small>How the database was verified, and why</small></div>
+          <div>docs/EVALUATION_COST.md<small>Measured AI cost per job, and how the spend caps work</small></div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <p>Built to be run by one person on their own infrastructure. If something in this guide is wrong or out of date, check the referenced files in the repository first — this page is a companion to them, not a replacement.</p>
+    </footer>
+  </main>
+</div>
+
+<!-- ARTIFACT:BODY:END -->
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- mobile nav ---------- */
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var backdrop = document.getElementById('backdrop');
+  function closeNav(){
+    sidebar.classList.remove('open');
+    backdrop.classList.remove('open');
+    if(toggle) toggle.setAttribute('aria-expanded','false');
+  }
+  function openNav(){
+    sidebar.classList.add('open');
+    backdrop.classList.add('open');
+    if(toggle) toggle.setAttribute('aria-expanded','true');
+  }
+  if(toggle){
+    toggle.addEventListener('click', function(){
+      sidebar.classList.contains('open') ? closeNav() : openNav();
+    });
+  }
+  if(backdrop) backdrop.addEventListener('click', closeNav);
+  document.querySelectorAll('#toc a').forEach(function(a){
+    a.addEventListener('click', closeNav);
+  });
+
+  /* ---------- scrollspy ---------- */
+  var sections = Array.prototype.slice.call(document.querySelectorAll('main section[id]'));
+  var links = {};
+  document.querySelectorAll('#toc a').forEach(function(a){
+    links[a.getAttribute('href').slice(1)] = a;
+  });
+  if('IntersectionObserver' in window && sections.length){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        var link = links[entry.target.id];
+        if(!link) return;
+        if(entry.isIntersecting){
+          Object.keys(links).forEach(function(id){ links[id].classList.remove('active'); });
+          link.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
+    sections.forEach(function(s){ io.observe(s); });
+  }
+
+  /* ---------- progress checklist (localStorage) ---------- */
+  var STORAGE_KEY = 'jaa-setup-progress-v1';
+  var checkButtons = Array.prototype.slice.call(document.querySelectorAll('.phase-check'));
+  var total = checkButtons.length;
+
+  function loadState(){
+    try{
+      var raw = window.localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveState(state){
+    try{ window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){ /* private mode etc. */ }
+  }
+
+  var state = loadState();
+
+  var dotOriginals = {};
+  checkButtons.forEach(function(btn){
+    var id = btn.getAttribute('data-phase');
+    var navLink = links['phase-' + id];
+    var dot = navLink ? navLink.querySelector('.dot') : null;
+    if(dot) dotOriginals[id] = dot.textContent;
+  });
+
+  function applyState(){
+    var doneCount = 0;
+    checkButtons.forEach(function(btn){
+      var id = btn.getAttribute('data-phase');
+      var done = !!state[id];
+      btn.setAttribute('aria-pressed', done ? 'true' : 'false');
+      var navLink = links['phase-' + id];
+      if(navLink){
+        navLink.classList.toggle('done', done);
+        var dot = navLink.querySelector('.dot');
+        if(dot) dot.textContent = done ? '✓' : (dotOriginals[id] != null ? dotOriginals[id] : dot.textContent);
+      }
+      if(done) doneCount++;
+    });
+    var countEl = document.getElementById('progressCount');
+    var fillEl = document.getElementById('progressFill');
+    if(countEl) countEl.textContent = doneCount + ' / ' + total;
+    if(fillEl) fillEl.style.width = (total ? (doneCount/total*100) : 0) + '%';
+  }
+
+  checkButtons.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var id = btn.getAttribute('data-phase');
+      state[id] = !state[id];
+      saveState(state);
+      applyState();
+    });
+  });
+
+  applyState();
+
+  /* ---------- copy buttons ---------- */
+  document.querySelectorAll('.code-block').forEach(function(block){
+    var btn = block.querySelector('.copy-btn');
+    var codeEl = block.querySelector('code');
+    if(!btn || !codeEl) return;
+    btn.addEventListener('click', function(){
+      var text = codeEl.textContent;
+      function done(){
+        var original = btn.textContent;
+        btn.textContent = 'Copied';
+        setTimeout(function(){ btn.textContent = original; }, 1400);
+      }
+      try{
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(text).then(done).catch(function(){ fallbackCopy(text, done); });
+        } else {
+          fallbackCopy(text, done);
+        }
+      }catch(e){
+        fallbackCopy(text, done);
+      }
+    });
+  });
+
+  function fallbackCopy(text, done){
+    try{
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      done();
+    }catch(e){ /* clipboard unavailable — silently no-op */ }
+  }
+})();
+</script>
+</body>
+</html>
